@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Summarizer</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 { 
+            color: #333; 
+            text-align: center; 
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        input, button { 
+            padding: 15px; 
+            margin: 10px 0; 
+            width: 100%; 
+            box-sizing: border-box; 
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            font-size: 16px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button { 
+            background: linear-gradient(45deg, #ff0000, #cc0000); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,0,0,0.3);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result { 
+            margin-top: 30px; 
+            padding: 25px; 
+            background: #f8f9fa; 
+            border-radius: 10px; 
+            border-left: 4px solid #667eea;
+        }
+        .loading {
+            text-align: center;
+            color: #667eea;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 YouTube Video Summarizer</h1>
+        <p class="subtitle">Get AI-powered summaries of any YouTube video in seconds</p>
+        
+        <input type="url" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." required>
+        <input type="email" id="email" placeholder="your.email@example.com" required>
+        <button id="summarizeBtn" onclick="summarizeVideo()">🚀 Summarize Video</button>
+        
+        <div id="result" class="result" style="display: none;">
+            <h3>📝 Summary:</h3>
+            <div id="summaryText"></div>
+        </div>
+    </div>
+
+    <script>
+        async function summarizeVideo() {
+            const url = document.getElementById('youtubeUrl').value;
+            const email = document.getElementById('email').value;
+            const resultDiv = document.getElementById('result');
+            const summaryText = document.getElementById('summaryText');
+            const button = document.getElementById('summarizeBtn');
+            
+            if (!url || !email) {
+                alert('Please enter both YouTube URL and email');
+                return;
+            }
+            
+            // Validate YouTube URL
+            if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+                alert('Please enter a valid YouTube URL');
+                return;
+            }
+            
+            // Show loading state
+            button.disabled = true;
+            button.textContent = '⏳ Processing...';
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result loading';
+            summaryText.innerHTML = `
+                <div class="spinner"></div>
+                <p>Downloading video, transcribing audio, and generating summary...</p>
+                <p><small>This may take a few minutes for longer videos</small></p>
+            `;
+            
+            try {
+                const response = await fetch('API_GATEWAY_URL/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        url: url, 
+                        email: email 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    summaryText.innerHTML = `
+                        <p><strong>✅ Summary generated successfully!</strong></p>
+                        <p>${data.summary || 'Your video has been processed and summarized.'}</p>
+                        ${data.transcript ? `<details><summary>View Full Transcript</summary><p style="margin-top: 10px; white-space: pre-wrap;">${data.transcript}</p></details>` : ''}
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    summaryText.innerHTML = `
+                        <p><strong>❌ Error:</strong> ${data.error || 'Failed to process video'}</p>
+                        <p><small>Please check your URL and try again</small></p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                summaryText.innerHTML = `
+                    <p><strong>❌ Network Error:</strong> ${error.message}</p>
+                    <p><small>Please check your internet connection and try again</small></p>
+                `;
+            } finally {
+                button.disabled = false;
+                button.textContent = '🚀 Summarize Video';
+            }
+        }
+        
+        // Allow Enter key to submit
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                summarizeVideo();
+            }
+        });
+    </script>
+</body>
+</html>
