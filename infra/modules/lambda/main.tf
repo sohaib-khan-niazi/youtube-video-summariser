@@ -2,13 +2,17 @@
 resource "aws_lambda_function" "video_processor" {
   function_name = var.function_name
   role         = aws_iam_role.lambda_role.arn
-  handler      = "index.handler"
+  handler      = "lambda_function.lambda_handler"
   runtime      = "python3.11"
   timeout      = 900  # 15 minutes for video processing
-  memory_size  = 1024
+  memory_size  = 2048  # Increased for yt-dlp processing
 
   filename         = var.lambda_zip_path
   source_code_hash = filebase64sha256(var.lambda_zip_path)
+
+  layers = [
+    "arn:aws:lambda:us-east-1:537124957347:layer:yt-dlp-layer:1"
+  ]
 
   environment {
     variables = {
