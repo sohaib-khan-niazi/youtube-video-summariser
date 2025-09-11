@@ -40,3 +40,4 @@ ENV/
 .idea/
 .vscode/
 
+backend/package/
